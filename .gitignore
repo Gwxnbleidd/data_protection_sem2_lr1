@@ -1,5 +1,5 @@
-/main.py
+/main1.py
 /.idea/*
 /test.py
-/GUI/public_keys/*
-/GUI/private_keys/*
+/keys/public_keys/*
+/keys/private_keys/*

@@ -1,9 +1,9 @@
-import os
 import tkinter as tk
 from tkinter import messagebox, filedialog
 from Crypto.Hash import SHA256
 
-from utils import get_private_key, get_public_key, create_user_keys, load_private_key, SignedDocument, load_public_key
+from app.utils import (get_private_key, get_public_key, create_user_keys, load_private_key, SignedDocument,
+                       load_public_key, PublicKeyDocument)
 
 
 # Вариант 28
@@ -57,7 +57,7 @@ class App(tk.Tk):
         keys_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Управление ключами", menu=keys_menu)
         keys_menu.add_command(label="Выбор закрытого ключа", command=self._choice_user)
-        keys_menu.add_command(label="Экспорт открытого ключа")
+        keys_menu.add_command(label="Экспорт открытого ключа", command=self._export_public_key)
         keys_menu.add_command(label="Импорт открытого ключа")
         keys_menu.add_command(label="Удалить пару")
 
@@ -168,15 +168,37 @@ class App(tk.Tk):
             messagebox.showerror("Ошибка", f"Файл изменен, либо выбран недействительный открытый ключ")
             return
 
+    def _export_public_key(self):
+        """
+        Обработчик нажатия "Экспорт открытого ключа" меню "Управление ключами"
+        """
+        if not self.current_user or not self.private_key:
+            messagebox.showwarning("Ошибка", "Пользователь не выбран")
+            return
+
+        public_key_path = get_public_key(self.current_user)
+        if not public_key_path:
+            messagebox.showwarning("Ошибка", "У пользователя не найден открытый ключ")
+            return
+
+        public_key = load_public_key(public_key_path)
+        public_key_pem = public_key.to_pem()
+        hash_public_key_pem = SHA256.new(public_key_pem)
+        sign = self.private_key.sign(hash_public_key_pem.digest())
+
+        public_key_doc = PublicKeyDocument(username=self.current_user, sign=sign, public_key=public_key_pem)
+
+        public_key_path = filedialog.asksaveasfilename(title="Сохранить открытый ключ")
+        if not public_key_path:
+            return
+        try:
+            public_key_doc._save_as_file(public_key_path)
+            messagebox.showinfo("Сохранение", "Открытый ключ успешно сохранён.")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось сохранить документ:\n{e}")
+
     def _about(self):
+        """
+        Обработчик нажатия "Справка" меню "О программе"
+        """
         messagebox.showinfo("О программе", "Гайчуков Д.А.\nА-13-21\nВариант 28")
-
-
-if __name__ == '__main__':
-    if not os.path.exists('private_keys'):
-        os.mkdir('private_keys')
-    if not os.path.exists('public_keys'):
-        os.mkdir('public_keys')
-
-    app = App()
-    app.mainloop()

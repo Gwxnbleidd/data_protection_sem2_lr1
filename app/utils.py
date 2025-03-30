@@ -1,5 +1,4 @@
 import os
-import struct
 
 import ecdsa
 from ecdsa.keys import SigningKey, VerifyingKey
@@ -12,9 +11,9 @@ def get_private_key(username: str) -> str | None:
     :param username: Имя пользователя
     :return: Путь до ключа или None
     """
-    for file in os.listdir('private_keys'):
+    for file in os.listdir('keys/private_keys'):
         if file.startswith(username):
-            return os.path.join('private_keys', file)
+            return os.path.join('keys/private_keys', file)
     return None
 
 
@@ -25,9 +24,9 @@ def get_public_key(username: str) -> str | None:
     :param username: Имя пользователя
     :return: Путь до ключа или None
     """
-    for file in os.listdir('public_keys'):
+    for file in os.listdir('keys/public_keys'):
         if file.startswith(username):
-            return os.path.join('public_keys', file)
+            return os.path.join('keys/public_keys', file)
     return None
 
 
@@ -40,9 +39,9 @@ def create_user_keys(username: str):
     private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
     public_key = private_key.get_verifying_key()
 
-    with open(f'private_keys/{username}.sk', 'wb') as sk_file:
+    with open(f'keys/private_keys/{username}.sk', 'wb') as sk_file:
         sk_file.write(private_key.to_pem())
-    with open(f'public_keys/{username}.pk', 'wb') as pk_file:
+    with open(f'keys/public_keys/{username}.pem', 'wb') as pk_file:
         pk_file.write(public_key.to_pem())
 
 
@@ -79,12 +78,12 @@ class SignedDocument:
         self.username = username
         self.sign = sign
         self.text = text
-        self.username_length = str(len(username))
-        self.sign_length = str(len(sign))
+        self.username_length = username_length or len(username)
+        self.sign_length = sign_length or len(sign)
 
     def _save_as_file(self, file_path: str):
         separator = b'|||'
-        bytes_values = [str(item).encode('utf-8') if not isinstance(item, bytes) else item for item in
+        bytes_values = [str(item).encode('utf-8') for item in
                         [self.username, self.text, self.username_length, self.sign_length]]
         bytes_values.append(self.sign)
 
@@ -105,3 +104,37 @@ class SignedDocument:
         return SignedDocument(username=username, sign=sign, text=text, username_length=username_length,
                               sign_length=sign_length)
 
+
+class PublicKeyDocument:
+    def __init__(self, username: str, sign: bytes, public_key: bytes, username_length: int = None,
+                 public_key_length: int = None):
+        self.username = username
+        self.public_key = public_key
+        self.sign = sign
+        self.username_length = username_length or len(username)
+        self.public_key_length = public_key_length or len(sign)
+
+    def _save_as_file(self, file_path: str):
+        separator = b'|||'
+        bytes_values = [str(item).encode('utf-8') if not isinstance(item, bytes) else item
+                        for item in [self.username, self.public_key, self.sign,
+                                     self.username_length, self.public_key_length]]
+
+        with open(f'{file_path}.pem', 'wb') as f:
+            f.write(separator.join(bytes_values))
+
+    @staticmethod
+    def _load_from_file(file_path: str):
+        separator = b'|||'
+        with open(file_path, 'rb') as f:
+            bytes_values = f.read()
+
+        bytes_values = bytes_values.split(separator)
+        username, public_key, sign, username_length, public_key_length = map(
+            lambda x: x.decode('utf-8'), bytes_values
+        )
+        public_key = bytes_values[1]
+        sign = bytes_values[2]
+
+        return PublicKeyDocument(username=username, sign=sign, public_key=public_key, username_length=username_length,
+                         public_key_length=public_key_length)
