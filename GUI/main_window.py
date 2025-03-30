@@ -64,7 +64,7 @@ class App(tk.Tk):
         # Меню "О программе"
         about_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="О программе", menu=about_menu)
-        about_menu.add_command(label="Справка")
+        about_menu.add_command(label="Справка", command=self._about)
 
     def _choice_user(self):
         """
@@ -167,6 +167,11 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showerror("Ошибка", f"Файл изменен, либо выбран недействительный открытый ключ")
             return
+
+    def _about(self):
+        messagebox.showinfo("О программе",
+                            "Гайчуков Д.А.\n"
+                            "Вариант 28")
 
 
 if __name__ == '__main__':
