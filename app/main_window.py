@@ -183,10 +183,8 @@ class App(tk.Tk):
 
         public_key = load_public_key(public_key_path)
         public_key_pem = public_key.to_pem()
-        hash_public_key_pem = SHA256.new(public_key_pem)
-        sign = self.private_key.sign(hash_public_key_pem.digest())
 
-        public_key_doc = PublicKeyDocument(username=self.current_user, sign=sign, public_key=public_key_pem)
+        public_key_doc = PublicKeyDocument(username=self.current_user, public_key=public_key_pem)
 
         public_key_path = filedialog.asksaveasfilename(title="Сохранить открытый ключ")
         if not public_key_path:

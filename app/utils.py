@@ -106,19 +106,20 @@ class SignedDocument:
 
 
 class PublicKeyDocument:
-    def __init__(self, username: str, sign: bytes, public_key: bytes, username_length: int = None,
-                 public_key_length: int = None):
+    def __init__(self, username: str, public_key: bytes, username_length: int = None,
+                 public_key_length: int = None, sign: bytes = None):
         self.username = username
         self.public_key = public_key
         self.sign = sign
         self.username_length = username_length or len(username)
-        self.public_key_length = public_key_length or len(sign)
+        self.public_key_length = public_key_length or len(public_key)
 
     def _save_as_file(self, file_path: str):
         separator = b'|||'
         bytes_values = [str(item).encode('utf-8') if not isinstance(item, bytes) else item
-                        for item in [self.username, self.public_key, self.sign,
-                                     self.username_length, self.public_key_length]]
+                        for item in [self.username, self.public_key, self.username_length, self.public_key_length]]
+        if self.sign:
+            bytes_values.append(self.sign)
 
         with open(f'{file_path}.pem', 'wb') as f:
             f.write(separator.join(bytes_values))
@@ -130,11 +131,12 @@ class PublicKeyDocument:
             bytes_values = f.read()
 
         bytes_values = bytes_values.split(separator)
-        username, public_key, sign, username_length, public_key_length = map(
-            lambda x: x.decode('utf-8'), bytes_values
+
+        username, public_key, username_length, public_key_length = map(
+            lambda x: x.decode('utf-8'), bytes_values[:4]
         )
         public_key = bytes_values[1]
-        sign = bytes_values[2]
+        sign = bytes_values[4] if len(bytes_values) == 5 else None
 
         return PublicKeyDocument(username=username, sign=sign, public_key=public_key, username_length=username_length,
-                         public_key_length=public_key_length)
+                                 public_key_length=public_key_length)
