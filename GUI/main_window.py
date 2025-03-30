@@ -169,9 +169,7 @@ class App(tk.Tk):
             return
 
     def _about(self):
-        messagebox.showinfo("О программе",
-                            "Гайчуков Д.А.\n"
-                            "Вариант 28")
+        messagebox.showinfo("О программе", "Гайчуков Д.А.\nА-13-21\nВариант 28")
 
 
 if __name__ == '__main__':
