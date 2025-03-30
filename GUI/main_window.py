@@ -1,9 +1,9 @@
 import os
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from Crypto.Hash import SHA256
 
-from utils import get_users_key, create_user_keys
+from utils import get_users_key, create_user_keys, load_private_key, SignedDocument
 
 
 # Вариант 28
@@ -24,7 +24,8 @@ class App(tk.Tk):
         self.username_entry = tk.Entry(self, state='disabled')
         self.choice_user_btn = tk.Button(self, text='Выбрать пользователя', command=self._choice_user)
         self.load_document_btn = tk.Button(self, text='Загрузить документ', state='disabled')
-        self.save_document_btn = tk.Button(self, text='Сохранить документ', state='disabled')
+        self.save_document_btn = tk.Button(self, text='Сохранить документ', state='disabled',
+                                           command=self._save_document)
         self.text_place = tk.Text(self, width=100)
 
         self.username_label.grid(row=0, column=0, padx=5, pady=5)
@@ -46,7 +47,7 @@ class App(tk.Tk):
         file_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Файл", menu=file_menu)
         file_menu.add_command(label="Создать", command=self._create_document)
-        file_menu.add_command(label="Сохранить")
+        file_menu.add_command(label="Сохранить", command=self._save_document)
         file_menu.add_command(label="Загрузить")
         file_menu.add_separator()
         file_menu.add_command(label="Выход", command=self.quit)
@@ -80,6 +81,8 @@ class App(tk.Tk):
             messagebox.showwarning("Ошибка", "Введите имя пользователя")
             self.load_document_btn.config(state='disabled')
             self.save_document_btn.config(state='disabled')
+            self.current_user = None
+            self.private_key = None
             return
 
         path_to_private_key = get_users_key(username)
@@ -94,8 +97,13 @@ class App(tk.Tk):
         self.load_document_btn.config(state='normal')
         self.save_document_btn.config(state='normal')
         # Загрузить закрытый ключ
-
-        messagebox.showinfo("Ключи", f"Ключи для пользователя '{username}' загружены")
+        self.private_key = load_private_key(path_to_private_key)
+        if self.private_key:
+            self.current_user = username
+            messagebox.showinfo("Приватный ключ", f"Приватный ключ для пользователя '{username}' загружен")
+        else:
+            messagebox.showwarning('Ошибка', f'Приватный ключ для пользователя {username} не загружен!')
+            return
 
     def _create_document(self):
         """
@@ -113,6 +121,21 @@ class App(tk.Tk):
             messagebox.showwarning("Ошибка", "Текстовое поле пустое")
             return
         hash_text = SHA256.new(text_content.encode('utf-8'))
+
+        if not self.private_key:
+            messagebox.showwarning("Ошибка", "Приватный ключ не загружен")
+            return
+        signature = self.private_key.sign(hash_text.digest())
+
+        document = SignedDocument(username=self.current_user, sign=signature, text=text_content)
+        signed_document_path = filedialog.asksaveasfilename(title="Сохранить документ")
+        if not signed_document_path:
+            return
+        try:
+            document._save_as_file(signed_document_path)
+            messagebox.showinfo("Сохранение", "Документ успешно сохранён.")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось сохранить документ:\n{e}")
 
 
 if __name__ == '__main__':

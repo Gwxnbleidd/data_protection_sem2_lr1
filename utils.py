@@ -1,6 +1,7 @@
 import os
-
+import struct
 import ecdsa
+from ecdsa.keys import SigningKey
 
 
 def get_users_key(username: str) -> str | None:
@@ -31,20 +32,43 @@ def create_user_keys(username: str):
         pk_file.write(public_key.to_pem())
 
 
+def load_private_key(private_key_path: str) -> SigningKey | None:
+    """
+    Функция загружает и возвращает приватный ключ, если его нет, возвращает None
+
+    :param private_key_path: Путь к приватному ключу пользователя
+    :return: Ключ или None
+    """
+    if os.path.exists(private_key_path):
+        with open(private_key_path, 'rb') as sk_file:
+            private_key = ecdsa.SigningKey.from_pem(sk_file.read())
+        return private_key
+    return None
+
+
 class SignedDocument:
-    # Длина имени подписывающего пользователя
-    # Длина подписи
-    # Имя подписывающего пользователя
-    # Электронная подпись
-    # Текст документа
     def __init__(self, username: str, sign: bytes,  text: str):
-        self.username = username
         self.username_length = len(username)
+        self.sign_length = len(sign)
+        self.username = username
         self.sign = sign
         self.text = text
 
+    def _save_as_file(self, file_path: str):
+        with open(file_path, 'wb') as file:
+            file.write(struct.pack('I', self.username_length))
+            file.write(self.username.encode())
+            file.write(struct.pack('I', self.sign_length))
+            file.write(self.sign)
+            file.write(self.text.encode())
 
-class Signature:
-    def __init__(self):
-        self.private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-        self.public_key = self.private_key.get_verifying_key()
+    @staticmethod
+    def _load_from_file(file_path: str):
+        with open(file_path, 'rb') as file:
+            username_length = struct.unpack('I', file.read(4))[0]
+            username = file.read(username_length).decode()
+            sign_length = struct.unpack('I', file.read(4))[0]
+            sign = file.read(sign_length)
+            text = file.read().decode()
+
+        return SignedDocument(username, sign, text)
