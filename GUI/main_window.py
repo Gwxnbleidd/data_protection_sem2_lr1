@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 from Crypto.Hash import SHA256
 
-from utils import get_users_key, create_user_keys, load_private_key, SignedDocument
+from utils import get_private_key, get_public_key, create_user_keys, load_private_key, SignedDocument, load_public_key
 
 
 # Вариант 28
@@ -23,7 +23,8 @@ class App(tk.Tk):
         self.username_label = tk.Label(self, text="Имя пользователя:")
         self.username_entry = tk.Entry(self, state='disabled')
         self.choice_user_btn = tk.Button(self, text='Выбрать пользователя', command=self._choice_user)
-        self.load_document_btn = tk.Button(self, text='Загрузить документ', state='disabled')
+        self.load_document_btn = tk.Button(self, text='Загрузить документ', state='disabled',
+                                           command=self._load_document)
         self.save_document_btn = tk.Button(self, text='Сохранить документ', state='disabled',
                                            command=self._save_document)
         self.text_place = tk.Text(self, width=100)
@@ -48,7 +49,7 @@ class App(tk.Tk):
         menu_bar.add_cascade(label="Файл", menu=file_menu)
         file_menu.add_command(label="Создать", command=self._create_document)
         file_menu.add_command(label="Сохранить", command=self._save_document)
-        file_menu.add_command(label="Загрузить")
+        file_menu.add_command(label="Загрузить", command=self._load_document)
         file_menu.add_separator()
         file_menu.add_command(label="Выход", command=self.quit)
 
@@ -85,14 +86,14 @@ class App(tk.Tk):
             self.private_key = None
             return
 
-        path_to_private_key = get_users_key(username)
+        path_to_private_key = get_private_key(username)
         if not path_to_private_key:
             if not messagebox.askyesno("Ключи не найдены",
                                        "Ключи для этого пользователя не найдены\nСоздать новую пару?"):
                 self.username_entry.delete(0, tk.END)
                 return
             create_user_keys(username)
-            path_to_private_key = get_users_key(username)
+            path_to_private_key = get_private_key(username)
 
         self.load_document_btn.config(state='normal')
         self.save_document_btn.config(state='normal')
@@ -128,6 +129,7 @@ class App(tk.Tk):
         signature = self.private_key.sign(hash_text.digest())
 
         document = SignedDocument(username=self.current_user, sign=signature, text=text_content)
+
         signed_document_path = filedialog.asksaveasfilename(title="Сохранить документ")
         if not signed_document_path:
             return
@@ -136,6 +138,35 @@ class App(tk.Tk):
             messagebox.showinfo("Сохранение", "Документ успешно сохранён.")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить документ:\n{e}")
+
+    def _load_document(self):
+        """
+        Обработчик нажатия на "Загрузить документ"
+        """
+        signed_document_path = filedialog.askopenfilename(title="Открыть документ")
+        if not signed_document_path:
+            return
+        try:
+            doc = SignedDocument._load_from_file(signed_document_path)
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось загрузить документ:\n{e}")
+            return
+
+        public_key_path = get_public_key(doc.username)
+        if not public_key_path:
+            messagebox.showerror("Ошибка", f"Не удалось найти отрытый ключ пользователя:{doc.username}")
+            return
+        self.public_key = load_public_key(public_key_path)
+
+        text_hash = SHA256.new(doc.text.encode('utf-8'))
+        try:
+            self.public_key.verify(doc.sign, text_hash.digest())
+            self.text_place.delete("1.0", tk.END)
+            self.text_place.insert(tk.END, doc.text)
+            self.title(f'Подписанный документ - {doc.username}')
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Файл изменен, либо выбран недействительный открытый ключ")
+            return
 
 
 if __name__ == '__main__':
