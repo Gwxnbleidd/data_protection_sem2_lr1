@@ -73,6 +73,21 @@ def load_public_key(public_key_path: str) -> VerifyingKey | None:
     return None
 
 
+def delete_keys(username: str):
+    """
+    Функция удаляет открытый и закрытый ключи из крипто-хранилища
+
+    :param username: Имя пользователя, чьи ключи надо удалить
+    """
+    sk_path = f'keys/private_keys/{username}.sk'
+    if os.path.exists(sk_path):
+        os.remove(sk_path)
+
+    pk_path = f'keys/public_keys/{username}.pem'
+    if os.path.exists(pk_path):
+        os.remove(pk_path)
+
+
 class SignedDocument:
     def __init__(self, username: str, sign: bytes, text: str, username_length: str = None, sign_length: str = None):
         self.username = username

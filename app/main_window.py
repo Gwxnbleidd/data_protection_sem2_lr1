@@ -226,6 +226,9 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить документ:\n{e}")
 
+    def _delete_keys(self):
+        pass
+
     def _about(self):
         """
         Обработчик нажатия "Справка" меню "О программе"

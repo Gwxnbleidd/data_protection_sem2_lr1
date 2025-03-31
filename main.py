@@ -2,12 +2,9 @@ import os
 from app.main_window import App
 
 if __name__ == '__main__':
-    if not os.path.exists('keys/private_keys'):
-        os.mkdir('keys/private_keys')
-    if not os.path.exists('keys/public_keys'):
-        os.mkdir('keys/public_keys')
-    if not os.path.exists('PK'):
-        os.mkdir('PK')
+    os.makedirs('keys/private_keys', exist_ok=True)
+    os.makedirs('keys/public_keys', exist_ok=True)
+    os.makedirs('PK', exist_ok=True)
 
     app = App()
     app.mainloop()
