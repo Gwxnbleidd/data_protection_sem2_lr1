@@ -87,6 +87,10 @@ def delete_keys(username: str):
     if os.path.exists(pk_path):
         os.remove(pk_path)
 
+    pk_path = f'PK/{username}.pem'
+    if os.path.exists(pk_path):
+        os.remove(pk_path)
+
 
 class SignedDocument:
     def __init__(self, username: str, sign: bytes, text: str, username_length: str = None, sign_length: str = None):

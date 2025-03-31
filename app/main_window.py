@@ -6,7 +6,7 @@ import ecdsa
 from Crypto.Hash import SHA256
 
 from app.utils import (get_private_key, get_public_key, create_user_keys, load_private_key, SignedDocument,
-                       load_public_key, PublicKeyDocument)
+                       load_public_key, PublicKeyDocument, delete_keys)
 
 
 # Вариант 28
@@ -62,7 +62,7 @@ class App(tk.Tk):
         keys_menu.add_command(label="Выбор закрытого ключа", command=self._choice_user)
         keys_menu.add_command(label="Экспорт открытого ключа", command=self._export_public_key)
         keys_menu.add_command(label="Импорт открытого ключа", command=self._import_public_key)
-        keys_menu.add_command(label="Удалить пару")
+        keys_menu.add_command(label="Удалить пару", command=self._delete_keys)
 
         # Меню "О программе"
         about_menu = tk.Menu(menu_bar, tearoff=0)
@@ -227,7 +227,14 @@ class App(tk.Tk):
             messagebox.showerror("Ошибка", f"Не удалось сохранить документ:\n{e}")
 
     def _delete_keys(self):
-        pass
+        if not self.current_user:
+            messagebox.showwarning("Ошибка", "Пользователь не выбран")
+            return
+
+        delete_keys(self.current_user)
+        self.username_entry.delete(0, tk.END)
+        messagebox.showinfo("Успех", f"Пара ключей пользователя {self.current_user} удалена")
+        return
 
     def _about(self):
         """
