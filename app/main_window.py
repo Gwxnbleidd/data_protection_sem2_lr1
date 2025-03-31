@@ -6,7 +6,7 @@ import ecdsa
 from Crypto.Hash import SHA256
 
 from app.utils import (get_private_key, get_public_key, create_user_keys, load_private_key, SignedDocument,
-                       load_public_key, PublicKeyDocument, delete_keys)
+                       load_public_key, PublicKeyDocument, delete_keys, get_get_public_key_from_pk_storage)
 
 
 # Вариант 28
@@ -102,6 +102,7 @@ class App(tk.Tk):
         self.save_document_btn.config(state='normal')
         # Загрузить закрытый ключ
         self.private_key = load_private_key(path_to_private_key)
+        self.public_key = None
         if self.private_key:
             self.current_user = username
             messagebox.showinfo("Приватный ключ", f"Приватный ключ для пользователя '{username}' загружен")
@@ -155,15 +156,35 @@ class App(tk.Tk):
             messagebox.showerror("Ошибка", f"Не удалось загрузить документ:\n{e}")
             return
 
-        public_key_path = get_public_key(doc.username)
+        # Получаем открытый ключ активного пользователя из крипто-хранилища
+        public_key_path = get_public_key(self.current_user)
+        self.public_key = load_public_key(public_key_path)
+
+        # Проверяем открытый ключ из директории с открытыми ключами
+        public_key_path = get_get_public_key_from_pk_storage(doc.username)
         if not public_key_path:
             messagebox.showerror("Ошибка", f"Не удалось найти отрытый ключ пользователя:{doc.username}")
             return
-        self.public_key = load_public_key(public_key_path)
+        try:
+            public_key_document = PublicKeyDocument._load_from_file(public_key_path)
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось загрузить открытый ключ:\n{e}")
+            return
+
+        key_signature = public_key_document.sign
+        public_key = ecdsa.VerifyingKey.from_pem(public_key_document.public_key)
+        public_key_hash = SHA256.new(public_key.to_pem())
+        try:
+            self.public_key.verify(key_signature, public_key_hash.digest())
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Вы не можете просматривать этот документ\n"
+                                           f"Импортируйте верный открытый ключ")
+            print(e)
+            return
 
         text_hash = SHA256.new(doc.text.encode('utf-8'))
         try:
-            self.public_key.verify(doc.sign, text_hash.digest())
+            public_key.verify(doc.sign, text_hash.digest())
             self.text_place.delete("1.0", tk.END)
             self.text_place.insert(tk.END, doc.text)
             self.title(f'Подписанный документ - {doc.username}')
@@ -220,7 +241,7 @@ class App(tk.Tk):
 
         doc.sign = signature
         try:
-            path = os.path.join('PK', self.current_user)
+            path = os.path.join('PK', doc.username)
             doc._save_as_file(path)
             messagebox.showinfo("Сохранение", "Открытый ключ успешно сохранён.")
         except Exception as e:

@@ -19,7 +19,7 @@ def get_private_key(username: str) -> str | None:
 
 def get_public_key(username: str) -> str | None:
     """
-    Функция проверяет наличие ключа username.pk и возвращает его. Если он не найдет, возвращает None
+    Функция проверяет наличие ключа username.pem в крипто-хранилище и возвращает его. Если он не найдет, возвращает None
 
     :param username: Имя пользователя
     :return: Путь до ключа или None
@@ -27,6 +27,19 @@ def get_public_key(username: str) -> str | None:
     for file in os.listdir('keys/public_keys'):
         if file.startswith(username):
             return os.path.join('keys/public_keys', file)
+    return None
+
+
+def get_get_public_key_from_pk_storage(username: str) -> str | None:
+    """
+    Функция проверяет наличие ключа username.pem в PK репозитории и возвращает его. Если он не найдет, возвращает None
+
+    :param username: Имя пользователя
+    :return: Путь до ключа или None
+    """
+    for file in os.listdir('PK'):
+        if file.startswith(username):
+            return os.path.join('PK', file)
     return None
 
 
