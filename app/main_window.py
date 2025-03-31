@@ -1,5 +1,8 @@
+import os
 import tkinter as tk
 from tkinter import messagebox, filedialog
+
+import ecdsa
 from Crypto.Hash import SHA256
 
 from app.utils import (get_private_key, get_public_key, create_user_keys, load_private_key, SignedDocument,
@@ -58,7 +61,7 @@ class App(tk.Tk):
         menu_bar.add_cascade(label="Управление ключами", menu=keys_menu)
         keys_menu.add_command(label="Выбор закрытого ключа", command=self._choice_user)
         keys_menu.add_command(label="Экспорт открытого ключа", command=self._export_public_key)
-        keys_menu.add_command(label="Импорт открытого ключа")
+        keys_menu.add_command(label="Импорт открытого ключа", command=self._import_public_key)
         keys_menu.add_command(label="Удалить пару")
 
         # Меню "О программе"
@@ -191,6 +194,34 @@ class App(tk.Tk):
             return
         try:
             public_key_doc._save_as_file(public_key_path)
+            messagebox.showinfo("Сохранение", "Открытый ключ успешно сохранён.")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось сохранить документ:\n{e}")
+
+    def _import_public_key(self):
+        """
+        Обработчик нажатия "Импорт открытого ключа" меню "Управление ключами"
+        """
+        public_key_path = filedialog.askopenfilename(title="Импортировать открытый ключ")
+        if not public_key_path:
+            return
+        try:
+            doc = PublicKeyDocument._load_from_file(public_key_path)
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось загрузить открытый ключ:\n{e}")
+            return
+        if not self.private_key:
+            messagebox.showwarning("Ошибка", "Сначала выберите (или создайте) свой ключ для подписи.")
+            return
+
+        public_key = ecdsa.VerifyingKey.from_pem(doc.public_key)
+        public_key_hash = SHA256.new(public_key.to_pem())
+        signature = self.private_key.sign(public_key_hash.digest())
+
+        doc.sign = signature
+        try:
+            path = os.path.join('PK', self.current_user)
+            doc._save_as_file(path)
             messagebox.showinfo("Сохранение", "Открытый ключ успешно сохранён.")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить документ:\n{e}")

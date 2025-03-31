@@ -6,6 +6,8 @@ if __name__ == '__main__':
         os.mkdir('keys/private_keys')
     if not os.path.exists('keys/public_keys'):
         os.mkdir('keys/public_keys')
+    if not os.path.exists('PK'):
+        os.mkdir('PK')
 
     app = App()
     app.mainloop()
