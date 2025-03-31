@@ -19,6 +19,10 @@ from app.utils import (get_private_key, get_public_key, create_user_keys, load_p
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.current_user = None
+        self.private_key = None
+        self.public_key = None
+
         self.title("Лабораторная работа 1")
         # self.geometry("900x500")
 
@@ -255,6 +259,9 @@ class App(tk.Tk):
         delete_keys(self.current_user)
         self.username_entry.delete(0, tk.END)
         messagebox.showinfo("Успех", f"Пара ключей пользователя {self.current_user} удалена")
+        self.username_entry.config(state='disabled')
+        self.load_document_btn.config(state='disabled')
+        self.save_document_btn.config(state='disabled')
         return
 
     def _about(self):
