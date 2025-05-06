@@ -167,7 +167,7 @@ class App(tk.Tk):
         # Проверяем открытый ключ из директории с открытыми ключами
         public_key_path = get_get_public_key_from_pk_storage(doc.username)
         if not public_key_path:
-            messagebox.showerror("Ошибка", f"Не удалось найти отрытый ключ пользователя:{doc.username}")
+            messagebox.showerror("Ошибка", f"Не удалось найти отрытый ключ пользователя:\n{doc.username}")
             return
         try:
             public_key_document = PublicKeyDocument._load_from_file(public_key_path)
